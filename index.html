@@ -21,10 +21,14 @@
         //Initializing Smart Script arguments
         var oneLinkURL = "https://bcup-godforge-test.onelink.me/zNag";
         var mediaSource = { keys: ["utm_source"], defaultValue: "BCUP_UNKNOWN" };
+        var campaign = {keys: ["incmp"]};
+
+
         var app_id = { paramKey: "app_id", keys: ["app_id"], defaultValue: "pc.Godforge.Fateless" };
         var af_media_source = { paramKey: "af_media_source", keys: ["utm_source"], defaultValue: "BCUP_UNKNOWN" };
         var af_campaign_id = { paramKey: "af_campaign_id", keys: ["cmp_id"], defaultValue: "BCUP_UNKNOWN_CAMPAIGN" };
         var platform = { paramKey: "platform", keys: ["platform"], defaultValue: "BCUP_UKNOWN_PLATFORM" };
+        var crossPlatformFlag = {paramKey: "af_xplatform", keys: [], defaultValue: "true"}; // must for cross platform apps 
         var af_r = { paramKey: "af_r", keys: ["download_url"], defaultValue: "https%3A%2F%2Fgodforge.stash.gg%2Fdownload" };
         var custom_ss_ui = { paramKey: "af_ss_ui", defaultValue: "true" };
 
@@ -34,11 +38,13 @@
             oneLinkURL: oneLinkURL,
             afParameters: {
                 mediaSource: mediaSource,
+                campaign: campaign,
                 afCustom: [
                     app_id,
                     af_media_source,
                     af_campaign_id,
                     platform,
+                    crossPlatformFlag,
                     af_r,
                     custom_ss_ui
                 ]
@@ -63,12 +69,13 @@
             //  height: 200px;
             //  width: 200px;
             //}
-            // Optionally - fire an impression.
-            // The impression will fire to https://impressions.onelink.me//.... 
-            //setTimeout(() => {
-            //    window.AF_SMART_SCRIPT.fireImpressionsLink();
-            //    console.log("Impression fired");
-            //}, 1000);
+            //Optionally - fire an impression.
+            //The impression will fire to https://impressions.onelink.me//.... 
+            console.log("Waiting before calling fireImpressionsLink()...");
+            setTimeout(() => {
+                window.AF_SMART_SCRIPT.fireImpressionsLink();
+               console.log("Impression fired");
+            }, 1000);
         } else {
             console.error("OneLink URL generation failed");
         }
