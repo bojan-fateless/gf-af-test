@@ -2,7 +2,7 @@
 
 <head>
     <title>Godforge AF Landing</title>
-    <script src="https://onelinksmartscript.appsflyer.com/onelink-smart-script-latest.js" ></script>
+    <script src="https://onelinksmartscript.appsflyer.com/onelink-smart-script-latest.js"></script>
 </head>
 
 <body>
@@ -74,7 +74,10 @@
             if (window.AF_SMART_SCRIPT.generateOneLinkURL({
                 oneLinkURL: ONELINK_TEMPLATE, afParameters: afParameters
             })) {
-                setTimeout(function () { window.AF_SMART_SCRIPT.fireImpressionsLink(); }, 1000);
+                setTimeout(function () {
+                    window.AF_SMART_SCRIPT.fireImpressionsLink();
+                    debug.log('Impression URL fired.');
+                }, 1000);
             }
 
             // 4. OS detection for the hero button.
