@@ -2,7 +2,7 @@
 
 <head>
     <title>Godforge AF Landing</title>
-    <script src="https://onelinksmartscript.appsflyer.com/onelink-smart-script-latest.js" async></script>
+    <script src="https://onelinksmartscript.appsflyer.com/onelink-smart-script-latest.js" ></script>
 </head>
 
 <body>
@@ -10,9 +10,91 @@
         <h1> Godforge Landing Page Test </h1>
         <img src="logo.png" width="240" />
 
-        <a href="#" id="windows_btn" style="display: block; margin-top: 20px;">Download windows</a>
+        <a href="#" id="dl_primary" style="display: block; margin-top: 20px;">Download Godforge</a>
     </center>
 
+    <script>
+        (function () {
+            console.log('Godforge AF page loaded');
+
+            var ONELINK_TEMPLATE = "https://bcup-godforge-test.onelink.me/zNag"; // cross-platform-enabled template
+
+            var PC_APPS = {
+                windows: {
+                    platform: "nativepc", app_id: "com.Godforge.Windows",
+                    redirectURL: "https://godforge.stash.gg/download"
+                },
+                macos: {
+                    platform: "nativepc", app_id: "com.Godforge.MacOS",
+                    redirectURL: "https://godforge.stash.gg/download"
+                }
+            };
+
+            // Shared mapping. mediaSource and campaign MUST resolve or generateDirectClickURL
+            // returns null, so both need a defaultValue.
+            var afParameters = {
+                mediaSource: { keys: ["utm_source", "pid"], defaultValue: "godforge_web" },
+                campaign: { keys: ["utm_campaign", "c"], defaultValue: "godforge_landing" },
+                channel: { keys: ["utm_medium", "af_channel"] },
+                ad: { keys: ["utm_content", "af_ad"] },
+                adSet: { keys: ["utm_term", "af_adset"] },
+                googleClickIdKey: "af_sub4",
+                afCustom: [
+                    { paramKey: "gclid", keys: ["gclid"] },
+                    { paramKey: "fbclid", keys: ["fbclid"] }
+                ]
+            };
+
+            // 1. Mobile CTA — the OneLink click URL, NOT a direct click URL.
+            //    Only this gives you store routing plus deferred deep linking.
+            var mobile = window.AF_SMART_SCRIPT.generateOneLinkURL({
+                oneLinkURL: ONELINK_TEMPLATE,
+                afParameters: afParameters
+            });
+            var mobileURL = mobile ? mobile.clickURL : ONELINK_TEMPLATE;
+
+            // 2. Desktop CTAs — one direct attribution link per PC app.
+            //    af_xplatform must NOT be present here.
+            var links = { ios: mobileURL, android: mobileURL };
+            Object.keys(PC_APPS).forEach(function (k) {
+                var a = PC_APPS[k];
+                var r = window.AF_SMART_SCRIPT.generateDirectClickURL({
+                    afParameters: afParameters,
+                    platform: a.platform,
+                    app_id: a.app_id,
+                    redirectURL: a.redirectURL
+                });
+                links[k] = r ? r.clickURL : a.redirectURL;   // never leave the button dead
+                var el = document.getElementById("dl_" + k);
+                if (el) el.setAttribute("href", links[k]);
+            });
+
+            // 3. Impression LAST, because generateOneLinkURL rebuilds fireImpressionsLink.
+            afParameters.afCustom.push({ paramKey: "af_xplatform", keys: [], defaultValue: "true" });
+            if (window.AF_SMART_SCRIPT.generateOneLinkURL({
+                oneLinkURL: ONELINK_TEMPLATE, afParameters: afParameters
+            })) {
+                setTimeout(function () { window.AF_SMART_SCRIPT.fireImpressionsLink(); }, 1000);
+            }
+
+            // 4. OS detection for the hero button.
+            var ua = navigator.userAgent;
+            var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+            var target =
+                /android/i.test(ua) ? "android" :
+                    /iPad|iPhone|iPod/.test(ua) ? "ios" :
+                        (plat === "MacIntel" && navigator.maxTouchPoints > 1) ? "ios" : // iPadOS lies
+                            /Win/i.test(plat) ? "windows" :
+                                /Mac/i.test(plat) ? "macos" : "windows";
+
+            console.log('Platform is :', target);
+
+            var hero = document.getElementById("dl_primary");
+            if (hero) hero.setAttribute("href", links[target]);
+        })();
+    </script>
+
+    <!--
     <script>
         console.log('Godforge AF page loaded');
 
@@ -80,6 +162,7 @@
             console.error("OneLink URL generation failed");
         }
     </script>
+    -->
 
 </body>
 
