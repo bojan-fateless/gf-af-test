@@ -11,6 +11,9 @@
         <img src="logo.png" width="240" />
 
         <a href="#" id="dl_primary" style="display: block; margin-top: 20px;">Download Godforge</a>
+        <br />
+        <a href="#" id="dl_windows" style="display: block; margin-top: 20px;">Download PC </a>
+        <a href="#" id="dl_macos" style="display: block; margin-top: 20px;">Download MacOS</a>
     </center>
 
     <script>
@@ -21,12 +24,14 @@
 
             var PC_APPS = {
                 windows: {
-                    platform: "nativepc", app_id: "com.Godforge.Windows",
-                    redirectURL: "https://godforge.stash.gg/download"
+                    platform: "nativepc",
+                    app_id: "com.Godforge.Windows",
+                    redirectURL: "https://godforge.stash.gg/download/windows/v0.5.0"
                 },
                 macos: {
-                    platform: "nativepc", app_id: "com.Godforge.MacOS",
-                    redirectURL: "https://godforge.stash.gg/download"
+                    platform: "nativepc",
+                    app_id: "com.Godforge.MacOS",
+                    redirectURL: "https://godforge.stash.gg/download/mac/v0.5.0"
                 }
             };
 
@@ -40,22 +45,43 @@
                 adSet: { keys: ["utm_term", "af_adset"] },
                 googleClickIdKey: "af_sub4",
                 afCustom: [
+                    { paramKey: "af_xplatform", keys: [], defaultValue: "true" },
                     { paramKey: "gclid", keys: ["gclid"] },
                     { paramKey: "fbclid", keys: ["fbclid"] }
                 ]
             };
 
-            // 1. Mobile CTA — the OneLink click URL, NOT a direct click URL.
-            //    Only this gives you store routing plus deferred deep linking.
-            var mobile = window.AF_SMART_SCRIPT.generateOneLinkURL({
+            //  Generate OneLink URL with the af_xplatform set - we will remove that later
+            var generateResult = window.AF_SMART_SCRIPT.generateOneLinkURL({
                 oneLinkURL: ONELINK_TEMPLATE,
                 afParameters: afParameters
             });
-            var mobileURL = mobile ? mobile.clickURL : ONELINK_TEMPLATE;
+
+            if (!generateResult) {
+                console.error("AF generateOneLinkURL failed. Returning.")
+                return;
+            }
+
+            //  Remove af_xplatform to trigger the impression
+            const indexToRemove = afParameters.afCustom.findIndex(
+                (item) => item.paramKey === "af_xplatform"
+            );
+            if (indexToRemove !== -1) {
+                afParameters.afCustom.splice(indexToRemove, 1);
+            }
+
+            console.log("AF Removed the af_xplatform from payload.");
+
+            setTimeout(() => {
+                window.AF_SMART_SCRIPT.fireImpressionsLink();
+                console.log("AF impression fired");
+            }, 1000);
 
             // 2. Desktop CTAs — one direct attribution link per PC app.
             //    af_xplatform must NOT be present here.
+            var mobileURL = generateResult.clickURL;
             var links = { ios: mobileURL, android: mobileURL };
+
             Object.keys(PC_APPS).forEach(function (k) {
                 var a = PC_APPS[k];
                 var r = window.AF_SMART_SCRIPT.generateDirectClickURL({
@@ -68,17 +94,6 @@
                 var el = document.getElementById("dl_" + k);
                 if (el) el.setAttribute("href", links[k]);
             });
-
-            // 3. Impression LAST, because generateOneLinkURL rebuilds fireImpressionsLink.
-            afParameters.afCustom.push({ paramKey: "af_xplatform", keys: [], defaultValue: "true" });
-            if (window.AF_SMART_SCRIPT.generateOneLinkURL({
-                oneLinkURL: ONELINK_TEMPLATE, afParameters: afParameters
-            })) {
-                setTimeout(function () {
-                    window.AF_SMART_SCRIPT.fireImpressionsLink();
-                    console.log('Impression URL fired.');
-                }, 1000);
-            }
 
             // 4. OS detection for the hero button.
             var ua = navigator.userAgent;
