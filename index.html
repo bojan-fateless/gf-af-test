@@ -52,17 +52,58 @@
                 }
             };
 
-            // Shared mapping. mediaSource and campaign MUST resolve or generateDirectClickURL
-            // returns null, so both need a defaultValue.
+            // af_channel fallback when the URL has no utm_source: the referring site's name,
+            // e.g. "https://www.google.com/" -> "google", "https://old.reddit.com/r/x" -> "reddit".
+            // Returns "" for direct visits, non-web referrers and same-site navigation.
+            function referrerChannel() {
+                var host;
+                try {
+                    var ref = new URL(document.referrer);
+                    if (ref.protocol !== "http:" && ref.protocol !== "https:") return "";
+                    host = ref.hostname.toLowerCase();
+                } catch (e) {
+                    return "";
+                }
+                if (!host || host === window.location.hostname.toLowerCase()) return "";
+
+                var labels = host.replace(/^www\./, "").split(".");
+                if (labels.length < 2) return labels[0];
+
+                // Skip the generic second-level label of "google.co.uk"-style domains.
+                var i = labels.length - 2;
+                var isCountryTld = labels[labels.length - 1].length === 2;
+                if (labels.length >= 3 && isCountryTld && /^(co|com|org|net|gov|edu|ac)$/.test(labels[i])) i--;
+                return labels[i];
+            }
+
+            // Shared mapping. Every argument is taken from the page URL when the link carries it
+            // (e.g. ?pid=CC&c=Creator_name&af_ad=Brief_name&af_channel=You_Tube&af_adset=Channel_name)
+            // and falls back to the default below when it does not. mediaSource and campaign MUST
+            // resolve or generateDirectClickURL returns null, so both keep a defaultValue.
+            //   pid            = ?pid,            else website
+            //   c              = ?c,              else organic
+            //   af_channel     = ?af_channel,     else utm_source, else the referrer domain, else omitted
+            //   af_adset       = ?af_adset,       else utm_campaign, else omitted
+            //   af_ad          = ?af_ad,          else utm_content, else omitted
+            //   af_sub1        = ?af_sub1,        else beta2
+            //   is_retargeting = ?is_retargeting, else true
+            //   af_dp          = ?af_dp,          else omitted
+            var channel = { keys: ["af_channel", "utm_source"] };
+            var referrer = referrerChannel();
+            if (referrer) channel.defaultValue = referrer;
+
             var afParameters = {
-                mediaSource: { keys: ["utm_source", "pid"], defaultValue: "godforge_web" },
-                campaign: { keys: ["utm_campaign", "c"], defaultValue: "godforge_landing" },
-                channel: { keys: ["utm_medium", "af_channel"] },
-                ad: { keys: ["utm_content", "af_ad"] },
-                adSet: { keys: ["utm_term", "af_adset"] },
+                mediaSource: { keys: ["pid"], defaultValue: "website" },
+                campaign: { keys: ["c"], defaultValue: "organic" },
+                channel: channel,
+                ad: { keys: ["af_ad", "utm_content"] },
+                adSet: { keys: ["af_adset", "utm_campaign"] },
+                afSub1: { keys: ["af_sub1"], defaultValue: "beta2" },
                 googleClickIdKey: "af_sub4",
                 afCustom: [
                     { paramKey: "af_xplatform", keys: [], defaultValue: "true" },
+                    { paramKey: "is_retargeting", keys: ["is_retargeting"], defaultValue: "true" },
+                    { paramKey: "af_dp", keys: ["af_dp"] },
                     { paramKey: "gclid", keys: ["gclid"] },
                     { paramKey: "fbclid", keys: ["fbclid"] }
                 ]
